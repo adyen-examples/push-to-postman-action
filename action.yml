@@ -20,5 +20,5 @@ inputs:
     description: 'The Postman collection ID'
     required: false
 runs:
-  using: 'node16'
+  using: 'node24'
   main: 'dist/index.js'
