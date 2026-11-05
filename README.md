@@ -2,6 +2,12 @@
 
 The GitHub action to push your collections to Postman.com.
 
+## Security
+
+- Store `postman-key` as a GitHub Actions secret. Never pass it from pull request data or other untrusted input.
+- In production workflows, pin this action and third-party actions to verified full commit SHAs. The examples below use mutable refs for readability.
+- Grant `GITHUB_TOKEN` only the permissions your workflow needs; this action does not require repository token permissions.
+
 ## Usage
 
 Add the push-to-postman action and set the required inputs
