@@ -25,7 +25,7 @@ Create new Postman collection using `workflow_dispatch`
 ```yaml
     - name: push-to-postman-action
       id: process
-      uses: gcatanese/push-to-postman-action@main
+      uses: adyen-examples/push-to-postman-action@main
       with:
         goal: create
         postman-key: ${{ secrets.POSTMAN_API_KEY }}
@@ -40,7 +40,7 @@ Update existing Postman collection using `workflow_dispatch`
 ```yaml
     - name: push-to-postman-action
       id: process
-      uses: gcatanese/push-to-postman-action@main
+      uses: adyen-examples/push-to-postman-action@main
       with:
         goal: update
         postman-key: ${{ secrets.POSTMAN_API_KEY }}
@@ -79,7 +79,7 @@ jobs:
           files: test/*.json
       - name: push-to-postman-action
         id: push-to-postman
-        uses: gcatanese/push-to-postman-action@main
+        uses: adyen-examples/push-to-postman-action@main
         with:
           goal: createOrUpdate
           postman-key: ${{ secrets.POSTMAN_API_KEY }}
@@ -87,4 +87,4 @@ jobs:
           workspace-id: ${{ secrets.POSTMAN_WORKSPACE_ID }}
 ```
 
-Sample workflows on [push-to-postman-action-test](https://github.com/gcatanese/push-to-postman-action-test) repo.
+Sample workflows on [push-to-postman-action-test](https://github.com/adyen-examples/push-to-postman-action-test) repo.
