@@ -1,153 +1,67 @@
 import axios from 'axios';
-import fs from "fs";
+import fs from 'fs';
+import path from 'path';
 
-const URL = "https://api.getpostman.com/collections";
+const URL = 'https://api.getpostman.com/collections';
 
 export class Postman {
-
     constructor(postmanApiKey) {
-        this.postmanApiKey = postmanApiKey;
-    }
-
-    createCollection(postmanFile, workspaceId) {
-
-        console.log("Pushing (post) to Postman..");
-
-        const config = {
-            params: {
-                'workspace': workspaceId,
-            },
+        this.client = axios.create({
+            timeout: 30000,
+            maxRedirects: 0,
             headers: {
                 'Content-Type': 'application/json',
-                'X-API-Key': this.postmanApiKey,
+                'X-API-Key': postmanApiKey,
             },
-        };
-
-        const files = postmanFile.split(' ');
-
-        for (const file of files) {
-
-            if (this.isJsonFile(file)) {
-                axios
-                    .post(URL, this.getFileAsJson(file), config)
-                    .then(res => {
-                        console.log(res.data)
-                    })
-                    .catch(error => {
-                        throw error;
-                    })
-            } else {
-                console.log("Skip " + file);
-            }
-        }
-
-    }
-
-    updateCollection(postmanFile, collectionId) {
-
-        console.log("Pushing (put) to Postman..");
-
-        const config = {
-            headers: {
-                'Content-Type': 'application/json',
-                'X-API-Key': this.postmanApiKey,
-            },
-        };
-
-        const files = postmanFile.split(' ');
-
-        for (const file of files) {
-
-            if (this.isJsonFile(file)) {
-                axios
-                    .put(URL + "/" + collectionId, this.getFileAsJson(file), config)
-                    .then(res => {
-                        console.log(res.data)
-                    })
-                    .catch(error => {
-                        throw error;
-                    })
-            } else {
-                console.log("Skip " + file);
-            }
-
-        }
-
-    }
-
-    async createOrUpdateCollection(postmanFile, workspaceId) {
-
-        // get title
-        const json = this.loadJson(postmanFile);
-
-        const title = json.info.name;
-        console.log("Collection title: " + title)
-
-        // get all collections
-
-        const config = {
-            params: {
-                'workspace': workspaceId,
-            },
-            headers: {
-                'X-API-Key': this.postmanApiKey,
-            },
-        };
-
-
-        const files = postmanFile.split(' ');
-
-        for (const file of files) {
-
-            if (this.isJsonFile(file)) {
-
-                var create = true;
-                var collectionId = -1;
-
-                await axios
-                    .get(URL, config)
-                    .then((response) => {
-                        if (response.status === 200) {
-                            const collections = response.data.collections;
-                            collections.forEach((collection) => {
-                                if(collection.name === title) {
-                                    create = false;
-                                    collectionId = collection.uid
-                                }
-                            });
-                        } else {
-                            throw error('Error retrieving collections:', response.statusText);
-                        }
-                    })
-                    .catch((error) => {
-                        throw error;
-                    });
-            }
-        }
-
-        if(create) {
-            this.createCollection(postmanFile, workspaceId);
-        } else {
-            this.updateCollection(postmanFile, collectionId);
-        }
-
-    }
-
-
-    isJsonFile(file) {
-        return file.endsWith(".json");
-    }
-
-    getFileAsJson(postmanFile) {
-        const collection = this.loadJson(postmanFile);
-        return JSON.stringify({
-            "collection": collection,
         });
-
     }
 
-    loadJson(postmanFile) {
-        return JSON.parse(fs.readFileSync(postmanFile, 'utf8'));
+    async createCollection(postmanFiles, workspaceId) {
+        for (const {collection} of this.loadCollections(postmanFiles)) {
+            await this.client.post(URL, {collection}, {params: {workspace: workspaceId}});
+        }
+    }
+
+    async updateCollection(postmanFiles, collectionId) {
+        for (const {collection} of this.loadCollections(postmanFiles)) {
+            await this.client.put(`${URL}/${encodeURIComponent(collectionId)}`, {collection});
+        }
+    }
+
+    async createOrUpdateCollection(postmanFiles, workspaceId) {
+        for (const {collection} of this.loadCollections(postmanFiles)) {
+            const response = await this.client.get(URL, {params: {workspace: workspaceId}});
+            const existing = response.data.collections?.find(item => item.name === collection.info.name);
+
+            if (existing) {
+                await this.client.put(`${URL}/${encodeURIComponent(existing.uid)}`, {collection});
+            } else {
+                await this.client.post(URL, {collection}, {params: {workspace: workspaceId}});
+            }
+        }
+    }
+
+    loadCollections(postmanFiles) {
+        return postmanFiles.split(/\s+/).filter(Boolean)
+            .filter(file => file.toLowerCase().endsWith('.json'))
+            .map(file => ({collection: this.loadJson(file)}));
+    }
+
+    loadJson(file) {
+        const workspace = fs.realpathSync(process.cwd());
+        const resolvedFile = fs.realpathSync(path.resolve(workspace, file));
+        const relativeFile = path.relative(workspace, resolvedFile);
+
+        if (relativeFile === '..' || relativeFile.startsWith(`..${path.sep}`) || path.isAbsolute(relativeFile)) {
+            throw new Error('Postman files must be inside the workspace');
+        }
+
+        const collection = JSON.parse(fs.readFileSync(resolvedFile, 'utf8'));
+        if (!collection || typeof collection !== 'object' || !collection.info || typeof collection.info.name !== 'string') {
+            throw new Error('Postman collection JSON must include info.name');
+        }
+
+        return collection;
     }
 }
 

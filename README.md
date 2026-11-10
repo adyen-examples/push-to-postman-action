@@ -2,6 +2,12 @@
 
 The GitHub action to push your collections to Postman.com.
 
+## Security
+
+- Store `postman-key` as a GitHub Actions secret. Never pass it from pull request data or other untrusted input.
+- In production workflows, pin this action and third-party actions to verified full commit SHAs. The examples below use mutable refs for readability.
+- Grant `GITHUB_TOKEN` only the permissions your workflow needs; this action does not require repository token permissions.
+
 ## Usage
 
 Add the push-to-postman action and set the required inputs
@@ -25,7 +31,7 @@ Create new Postman collection using `workflow_dispatch`
 ```yaml
     - name: push-to-postman-action
       id: process
-      uses: gcatanese/push-to-postman-action@main
+      uses: adyen-examples/push-to-postman-action@main
       with:
         goal: create
         postman-key: ${{ secrets.POSTMAN_API_KEY }}
@@ -40,7 +46,7 @@ Update existing Postman collection using `workflow_dispatch`
 ```yaml
     - name: push-to-postman-action
       id: process
-      uses: gcatanese/push-to-postman-action@main
+      uses: adyen-examples/push-to-postman-action@main
       with:
         goal: update
         postman-key: ${{ secrets.POSTMAN_API_KEY }}
@@ -79,7 +85,7 @@ jobs:
           files: test/*.json
       - name: push-to-postman-action
         id: push-to-postman
-        uses: gcatanese/push-to-postman-action@main
+        uses: adyen-examples/push-to-postman-action@main
         with:
           goal: createOrUpdate
           postman-key: ${{ secrets.POSTMAN_API_KEY }}
@@ -87,4 +93,4 @@ jobs:
           workspace-id: ${{ secrets.POSTMAN_WORKSPACE_ID }}
 ```
 
-Sample workflows on [push-to-postman-action-test](https://github.com/gcatanese/push-to-postman-action-test) repo.
+Sample workflows on [push-to-postman-action-test](https://github.com/adyen-examples/push-to-postman-action-test) repo.

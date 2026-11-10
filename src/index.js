@@ -1,4 +1,4 @@
-import core from '@actions/core';
+import * as core from '@actions/core';
 
 import {Postman} from './postman.js'
 
@@ -12,8 +12,6 @@ async function init () {
         if(!goal) {
             throw new Error("Missing input goal");
         }
-        console.log("Running " + goal)
-
         if (goal !== "create" && goal !== "update" && goal !== "createOrUpdate") {
             throw new Error("Unsupported goal: " + goal);
         }
@@ -22,9 +20,9 @@ async function init () {
         if(!postmanApiKey) {
             throw new Error("Missing input postman-key");
         }
+        core.setSecret(postmanApiKey);
 
         const postmanFile = core.getInput('postman-file');
-        console.log("Postman file(s): " + postmanFile);
         if(!postmanFile) {
             core.info('No Postman file(s) provided');
             core.setOutput('message', 'No Postman file(s) provided');
@@ -49,28 +47,29 @@ async function init () {
         }
 
         if(goal == 'create') {
-            createCollection(postmanApiKey, postmanFile, workspaceId);
+            await createCollection(postmanApiKey, postmanFile, workspaceId);
         } else if (goal == 'update') {
-            updateCollection(postmanApiKey, postmanFile, collectionId);
+            await updateCollection(postmanApiKey, postmanFile, collectionId);
         } else if (goal == 'createOrUpdate') {
-            createOrUpdateCollection(postmanApiKey, postmanFile, collectionId);
+            await createOrUpdateCollection(postmanApiKey, postmanFile, workspaceId);
         } else {
             throw new Error("Unrecognised goal " + goal);
         }
 
     } catch (error) {
-        core.setFailed(error.message)
+        const status = error.response?.status;
+        core.setFailed(status ? `Postman API request failed with status ${status}` : error.message);
     }
 }
 
 async function updateCollection(postmanApiKey, postmanFile, collectionId) {
-    new Postman(postmanApiKey).updateCollection(postmanFile, collectionId);
+    await new Postman(postmanApiKey).updateCollection(postmanFile, collectionId);
 }
 
 async function createCollection(postmanApiKey, postmanFile, workspaceId) {
-    new Postman(postmanApiKey).createCollection(postmanFile, workspaceId);
+    await new Postman(postmanApiKey).createCollection(postmanFile, workspaceId);
 }
 
 async function createOrUpdateCollection(postmanApiKey, postmanFile, workspaceId) {
-    new Postman(postmanApiKey).createOrUpdateCollection(postmanFile, workspaceId);
+    await new Postman(postmanApiKey).createOrUpdateCollection(postmanFile, workspaceId);
 }
